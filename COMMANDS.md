@@ -234,7 +234,7 @@ pip install --no-cache --index-url https://pypi.org/simple/ --extra-index-url ht
 
 version=v41.3 && \
 mkdir -p $(realpath .)/evals/$version && \
-python eval10.py --eval_dir $(realpath .)/evals/$version --num_workers 3 --skip_phase_1
+python eval10.py --eval_dir $(realpath .)/evals/$version --num_workers 8 --skip_phase_1
 ```
 
 Dependencies:
