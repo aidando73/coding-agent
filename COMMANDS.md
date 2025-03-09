@@ -232,7 +232,7 @@ python -m swebench.harness.run_evaluation \
 pip install -e git+https://github.com/meta-llama/llama-stack-client.git#egg=llama-stack-client
 pip install --no-cache --index-url https://pypi.org/simple/ --extra-index-url https://test.pypi.org/simple/ llama-stack==0.1.0rc7 
 
-version=v41.3 && \
+version=v41.5 && \
 mkdir -p $(realpath .)/evals/$version && \
 python eval10.py --eval_dir $(realpath .)/evals/$version --num_workers 8 --skip_phase_1
 ```
