@@ -33,8 +33,8 @@ import difflib
 # Currently only supports 3.3-70B-Instruct at the moment since it depends on the 3.3/3.2 tool prompt format
 # MODEL_ID = "meta-llama/Llama-3.3-70B-Instruct"
 # MODEL_ID = "fireworks_ai/accounts/fireworks/models/llama-v3p3-70b-instruct"
-# MODEL_ID = "fireworks_ai/accounts/fireworks/models/deepseek-r1"
-MODEL_ID = "fireworks_ai/accounts/fireworks/models/qwen2p5-72b-instruct"
+MODEL_ID = "fireworks_ai/accounts/fireworks/models/deepseek-r1"
+# MODEL_ID = "fireworks_ai/accounts/fireworks/models/qwen2p5-72b-instruct"
 # MODEL_ID = "unsloth/Llama-3.3-70B-Instruct-bnb-4bit"
 # MODEL_ID = "aidando73/llama-3.3-70b-instruct-code-agent-fine-tune-v1-base-4b-quantized"
 # MODEL_ID = "aidando73/llama-3.3-70b-instruct-code-agent-fine-tune-v1-merged"
@@ -193,8 +193,7 @@ class Phase2PromptGenerator(PromptTemplateGeneratorBase):
     ) -> str:
         template_str = textwrap.dedent(
             """
-            <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-            
+            <|begin_of_sentence|><|User|>
             You are an expert software engineer with deep knowledge of code analysis, debugging, and best practices in software development. \
             You are given the following problem:
 
@@ -211,30 +210,7 @@ class Phase2PromptGenerator(PromptTemplateGeneratorBase):
             {{ file_content }}
             </file_content>
 
-            Your task is to edit the file to fix the problem. Follow this structured approach:
-            1. Analysis Phase:
-            - Describe the core issue identified in the code
-            - Explain potential implications of the current implementation
-            - List any relevant design patterns or best practices that apply
-            - Identify any potential security, performance, or maintainability concerns
-
-            2. Solution Planning:
-            - Outline your proposed solution strategy
-            - Explain why this approach is optimal
-            - Identify any potential trade-offs or considerations
-            - Consider alternative approaches and explain why they were not chosen
-
-            3. Implementation Strategy:
-            - Break down the required changes into logical steps
-            - Explain how each modification contributes to the solution
-            - Consider potential edge cases or side effects
-            - Ensure backwards compatibility if relevant
-
-            After completing your analysis, implement your solution using the following format:
-            For each change:
-            1. Explain why this specific change is necessary
-            2. Show the modification using the old_content/new_content tags
-            3. Describe how this change affects the overall solution
+            Your task is to edit the file to fix the problem.
 
             You can make changes to the file by specifying <old_content></old_content> and <new_content></new_content> xml tags. \
             The old content will be replaced with the new content. \
@@ -268,40 +244,6 @@ class Phase2PromptGenerator(PromptTemplateGeneratorBase):
                     print("Hello, world!")
             </file_content>
 
-            Example of a well-structured response:
-            ```
-            ANALYSIS
-            Core Issue:
-            [Detailed explanation of the problem]
-            Implications:
-            [List of potential impacts]
-            Relevant Patterns/Practices:
-            [Applicable patterns or best practices]
-
-            SOLUTION STRATEGY
-            Proposed Approach:
-            [Detailed solution strategy]
-            Trade-offs Considered:
-            [List of trade-offs and decisions]
-
-            IMPLEMENTATION
-            Change 1:
-            - Purpose: [Explanation]
-            <old_content>
-            [Original code]
-            </old_content>
-            <new_content>
-            [Modified code]
-            </new_content>
-            - Impact: [Explanation of effects]
-            [Additional changes as needed...]
-
-            VERIFICATION
-            - Explanation of how changes address the original problem
-            - Confirmation of edge case handling
-            - Verification of code style and best practices
-            ```
-
             Please make the necessary changes to the file to fix the problem. \
 
             Before using the <|finish|> tag, confirm that:
@@ -310,7 +252,6 @@ class Phase2PromptGenerator(PromptTemplateGeneratorBase):
             3. No unintended side effects are introduced
 
             When you are done, use the <|finish|> tag to indicate that you are finished.
-            <|eot_id|>
             """
         )
 
@@ -472,7 +413,7 @@ def run_agent(
         print("Assistant: " + magenta(content))
 
         message += content
-        message += f"<|eot_id|>"
+        message += "<|end_of_sentence|>"
 
         with open(os.path.join(sandbox_dir, repo, file_chosen), "r") as f:
             file_content = f.read()
@@ -553,13 +494,27 @@ def run_agent(
 
 
 def header(role: Literal["user", "assistant", "system", "tool"]):
-    return f"<|start_header_id|>{role}<|end_header_id|>\n\n"
+    if role == "user":
+        return f"<|User|>\n\n"
+    elif role == "assistant":
+        return f"<|Assistant|>\n\n"
+    elif role == "system":
+        return f"<|System|>\n\n"
+    elif role == "tool":
+        return f"<|Tool|>\n\n"
 
 def token_count(message: str):
     return len(tokenizer.encode(message, bos=False, eos=False))
 
 def chat_message(role: Literal["user", "assistant", "system", "tool"], content: str):
-    return f"<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>"
+    if role == "user":
+        return f"{header('user')}{content}"
+    elif role == "assistant":
+        return f"{header('assistant')}{content}"
+    elif role == "system":
+        return f"{header('system')}{content}"
+    elif role == "tool":
+        return f"{header('tool')}{content}"
 
 def parse_tool_calls(
     content,
