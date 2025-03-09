@@ -403,6 +403,7 @@ def run_agent(
     for i in range(PHASE2_ITERATIONS):
         message += header("assistant")
         print(f"Input tokens: {token_count(message)}")
+        message += "<think>\n"
         response = text_completion(
             model=MODEL_ID,
             prompt=message,
